@@ -2,7 +2,11 @@
 
 A Python script to convert external media tracker exports (Trakt, MyAnimeList, etc.) into YamTrack-compatible CSV files for easy import.
 
-![YamTrack Logo](https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/yamtrack.svg)  
+<figure>
+    <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/yamtrack.svg" height="200" alt="YamTrack logo">
+    <figcaption>Image Source - https://github.com/homarr-labs/dashboard-icons</figcaption>
+</figure>
+
 *Compatible with [YamTrack](https://github.com/FuzzyGrim/Yamtrack), a self-hosted media tracker.*
 
 ---
