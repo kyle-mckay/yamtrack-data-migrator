@@ -1,0 +1,7 @@
+testdata/*
+__pycache__/*
+*/__pycache__/*
+*.csv
+*.xml
+*.json
+output/*
