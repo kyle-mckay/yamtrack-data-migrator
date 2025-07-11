@@ -1,4 +1,6 @@
-# Hardcover Adapter Column Mapping
+# Adapter Column Mapping
+
+Main Purpose: Take the passed data and convert, transpose, or format data into the expected format for YamTrack.
 
 These modules define and manages the column mapping logic used to convert export files from sources (`hardcover`, `openlibrary`, etc) into a format compatible with importing YamTrack.
 
