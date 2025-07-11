@@ -66,7 +66,7 @@ def export_csv(rows, output_file):
     fieldnames = list(rows[0].keys())
     log(f"Exporting {len(rows)} rows to {output_file}", VERBOSITY_INFO)
     with open(output_file, "w", newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
