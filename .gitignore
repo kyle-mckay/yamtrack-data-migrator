@@ -5,3 +5,5 @@ __pycache__/*
 *.xml
 *.json
 output/*
+*.env
+env/*

@@ -1,5 +1,11 @@
 import sys
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+ENV_PATH = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=ENV_PATH)
 
+VERBOSITY=int(os.getenv("VERBOSITY"))
 VERBOSITY_ERROR = 0   # Only errors
 VERBOSITY_WARNING = 1 # Warnings and errors
 VERBOSITY_INFO = 2    # Info, warnings, errors
@@ -8,7 +14,6 @@ VERBOSITY_TRACE = 4   # Trace, debug, info, warnings, errors
 
 # Default verbosity
 # TODO: (can be set via CLI in future)
-VERBOSITY = VERBOSITY_TRACE
 
 _COLOR_RESET = "\033[0m"
 _COLOR_RED = "\033[91m"

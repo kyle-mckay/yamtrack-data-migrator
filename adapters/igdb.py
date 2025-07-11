@@ -24,5 +24,73 @@ Full Column List as of 2025-07-10: id, game, url, rating, category, release_date
 
 """
 
-from helpers import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
+from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
 
+def map_row(row, strategy=None, idx=None, total=None):
+    """
+    Map a single hardcover row dict to the target schema.
+    Optionally logs the row index and total.
+    """
+    log(f"=========================", VERBOSITY_DEBUG)
+    if idx is not None and total is not None:
+        log(f"Mapping row {idx}/{total}", VERBOSITY_DEBUG)
+
+    source="igdb"
+    media_id=None
+    media_type="game"
+    title=None
+    image=None
+    season_number=None
+    episode_number=None
+    score=None
+    status="Planning"
+    notes=None
+    start_date=None
+    end_date=None
+    progress=None
+
+    match strategy:
+        case "steam_api":
+            # Expected Columns: appid,name,playtime_forever,playtime_windows_forever,playtime_mac_forever,playtime_linux_forever,rtime_last_played,playtime_2weeks,has_community_visible_stats,img_icon_url,img_logo_url,igdb_id
+            media_id=row.get("igdb_id")
+            title=row.get("name")
+        
+        case "igdb":
+            media_id=row.get("id")
+        case _:
+            log(f"igdb.py.map_row: Unknown strategy = {strategy}",VERBOSITY_ERROR)
+            return "Unknown Souce"
+
+    # Build mapped row
+    mapped = {
+        "source": source,
+        "media_id": media_id,
+        "media_type": media_type,
+        "title": title,
+        "image": image,
+        "season_number": season_number,
+        "episode_number": episode_number,
+        "score": score,
+        "status": status,
+        "notes": notes,
+        "start_date": start_date,
+        "end_date": end_date,
+        "progress": progress,
+    }
+    log(f"Mapped row: {mapped}", VERBOSITY_DEBUG)
+    return mapped
+
+def process_rows(rows,strategy=None):
+    """
+    Process a list of dictionaries representing rows from the file.
+    Returns a list of mapped rows.
+    """
+    log("==============================================", VERBOSITY_DEBUG)
+    log(f"igdb.py.process_rows: Processing {len(rows)} rows from igdb", VERBOSITY_DEBUG)
+    log(f"igdb.py.process_rows: Strategy being used = {strategy}", VERBOSITY_DEBUG)
+    if rows:
+        total = len(rows)
+        mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
+        log("Mapped all rows", VERBOSITY_DEBUG)
+        return mapped_rows
+    return []
