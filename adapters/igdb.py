@@ -40,7 +40,7 @@ Uses the `Download CSV` feature on igdb lists
 | season_number | N/A | Cond. | Not applicable for this source |
 | episode_number | N/A | Cond. | Not applicable for this source |
 | score | N/A | No | Not supported by list csv export |
-| status | Cond. | Yes | Default to `Planning`|
+| status | Cond. | Yes | Strategy is passed by cli.py to determine dynamically|
 | notes | N/A | No | As is |
 | start_date | N/A | No | |
 | end_date | N/A | No | |
@@ -68,7 +68,7 @@ def map_row(row, strategy=None, idx=None, total=None):
     image=None
     season_number=None
     episode_number=None
-    score=None
+    score=None # igdb rating columns are global game ratings, not user ratings
     status="Planning"
     notes=None
     start_date=None
@@ -77,13 +77,25 @@ def map_row(row, strategy=None, idx=None, total=None):
 
     match strategy:
         case "steam_api":
+            # File created with `cli.py --source igdb --input steam`
             media_id=row.get("igdb_id")
             title=row.get("name")
-        
+        case "list-played":
+            # Stretegy set if `--strategy` is none and input file was `played.csv`
+            media_id=row.get("id")
+            status="Completed"
+        case "list-playing":
+            # Strategy set if `--strategy` is none and input file was `playing.csv`
+            media_id=row.get("id")
+            status="In progress"
+        case "list-want":
+            # Strategy set if `--strategy` is none and input file was `want-to-play.csv`
+            media_id=row.get("id")
+            status="Planning"
         case "igdb":
+            # Default if `--source` is `igdb`
             media_id=row.get("id")
             title=row.get("game")
-            # rating field in list exports is a global rating, not a user rating
         case _:
             log(f"igdb.py.map_row: Unknown strategy = {strategy}",VERBOSITY_ERROR)
             return "Unknown Souce"
