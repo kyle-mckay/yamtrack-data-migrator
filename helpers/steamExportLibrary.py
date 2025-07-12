@@ -6,12 +6,12 @@ from pathlib import Path
 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
 
-def get_owned_games(api_key: str, steam_id64: str):
-    log(f"steamExportLibrary.py.get_owned_games: API key = {api_key}", VERBOSITY_TRACE)
+def get_owned_games(steam_secret: str, steam_id64: str):
+    log(f"steamExportLibrary.py.get_owned_games: API key = {steam_secret}", VERBOSITY_TRACE)
     log(f"steamExportLibrary.py.get_owned_games: Steam ID64 = {steam_id64}", VERBOSITY_TRACE)
     url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
     params = {
-        "key": api_key,
+        "key": steam_secret,
         "steamid": steam_id64,
         "include_appinfo": True,
         "include_played_free_games": True
@@ -22,8 +22,17 @@ def get_owned_games(api_key: str, steam_id64: str):
     data = response.json()
     return data.get("response", {}).get("games", [])
 
-def export_steam_library_to_csv(api_key: str, steam_id64: str, output_dir: Path = None) -> Path:
-    games = get_owned_games(api_key, steam_id64)
+def export_steam_library_to_csv(output_dir: Path = None) -> Path:
+    steam_secret = os.getenv("steam_secret")
+    log(f"steamExportLibrary.py: steam_secret read as {steam_secret}", VERBOSITY_TRACE)
+    steam_id64 = os.getenv("steam_id64")
+    log(f"steamExportLibrary.py: steam_id64 read as {steam_id64}", VERBOSITY_TRACE)
+
+    if not steam_secret and not steam_id64:
+        log("steamExportLibrary.py.export_steam_library_to_csv: Both steam_secret and steam_id64 must be provided in .env", VERBOSITY_ERROR)
+        return None
+    
+    games = get_owned_games(steam_secret, steam_id64)
     if not games:
         log("steamExportLibrary.py.export_steam_library_to_csv: No games found or profile is private.",VERBOSITY_WARNING)
 
@@ -64,8 +73,5 @@ def export_steam_library_to_csv(api_key: str, steam_id64: str, output_dir: Path 
 if __name__ == "__main__":
     env_path = Path(__file__).parent.parent / '.env'
     load_dotenv(dotenv_path=env_path)
-
-    steam_secret = os.getenv("steam_secret")
-    steam_id64 = os.getenv("steam_id64")
-    path = export_steam_library_to_csv(steam_secret, steam_id64)
+    path = export_steam_library_to_csv()
     print(f"Steam library exported to: {path}")

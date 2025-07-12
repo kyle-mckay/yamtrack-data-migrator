@@ -10,12 +10,14 @@ from pathlib import Path
 # First party imports
 from clilog import (
     log,
+    clear_logs,
     VERBOSITY,
     VERBOSITY_ERROR,
     VERBOSITY_WARNING,
     VERBOSITY_INFO,
     VERBOSITY_DEBUG,
     VERBOSITY_TRACE,
+    clear_logs_on_start,
 )
 import clilog
 
@@ -33,6 +35,7 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 log(f"cli.py: VERBOSITY obtained fron .env = {VERBOSITY}",VERBOSITY_DEBUG)
 log(f".env path loaded as {ENV_PATH}",VERBOSITY_TRACE)
+log(f"cli.py: clear_logs = {clear_logs()}", VERBOSITY_DEBUG)
 
 # File Importers
 
@@ -112,15 +115,9 @@ def main():
     if input_file == "steam":
         log("cli.py.main: Detecting put as steam, attempting to generate csv from steam API", VERBOSITY_DEBUG)
         strategy="steam_api"
-        steam_secret = os.getenv("steam_secret")
-        log(f"cli.py.main: steam_secret read as {steam_secret}", VERBOSITY_TRACE)
-        steam_id64 = os.getenv("steam_id64")
-        log(f"cli.py.main: steam_id64 read as {steam_id64}", VERBOSITY_TRACE)
-
         log("Input is steam, attempting to get steam library",VERBOSITY_INFO)
-        input_file = export_steam_library_to_csv(steam_secret, steam_id64)
+        input_file = export_steam_library_to_csv()
         log(f"cli.py.main: updated input_file = {input_file}",VERBOSITY_DEBUG)
-
         if args.source == "igdb":
             log("Source is igdb, using steam export to lookup id's",VERBOSITY_INFO)
             input_file = process_and_export_steam_rows(import_csv(input_file))

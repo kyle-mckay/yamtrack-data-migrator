@@ -18,8 +18,11 @@ import requests
 from typing import Optional, Dict, List
 from pathlib import Path
 from dotenv import load_dotenv
+import time
 
-from clilog import log, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE, VERBOSITY_ERROR, VERBOSITY_WARNING
+_next_allowed_time = 0  # module-level or global variable to track timing
+
+from clilog import log, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY
 
 # ───────────────────────────────────────────
 # ENV / CONFIG
@@ -60,17 +63,75 @@ def igdb_headers(token: str, client_id: str) -> Dict[str, str]:
         "Authorization": f"Bearer {token}",
     }
 
-def steam_to_igdb_id(steam_appid: str | int, headers: Dict[str, str]) -> Optional[int]:
-    query = f'fields game; where category = 1 & uid = "{steam_appid}";'
-    resp = requests.post(f"{IGDB_BASE}/external_games", headers=headers, data=query, timeout=10)
-    if resp.status_code == 429:
-        # Too many requests – wait and retry once
-        log(f"igdbSteamLookup.py.steam_to_igdb_id: API Response = 429, sleeping and continuing...",VERBOSITY_WARNING)
-        time.sleep(1)
-        resp = requests.post(f"{IGDB_BASE}/external_games", headers=headers, data=query, timeout=10)
+def steam_or_title_to_igdb_id(appid: str | int,
+                              title: str,
+                              headers: Dict[str, str]) -> Optional[int]:
+    """
+    Attempts to get IGDB game ID from a Steam App ID.
+    Falls back to searching by game title if no result is found via external_games.
+    """
+    # Attempt lookup via steam appid
+    query_id = f'fields game; where category = 1 & uid = "{appid}";'
+    log(f"igdbSteamLookup.py.steam_or_title_to_igdb_id: Querying IGDB external_games for AppID {appid}", VERBOSITY_TRACE)
+    resp = igdb_post("external_games", query_id, headers)
     resp.raise_for_status()
     data = resp.json()
-    return data[0]["game"] if data else None
+
+    if data:
+        game_id = data[0]["game"]
+        log(f"igdbSteamLookup.py.steam_or_title_to_igdb_id: Found IGDB ID {game_id} for AppID {appid} via external_games", VERBOSITY_DEBUG)
+        return game_id
+
+    log(f"igdbSteamLookup.py.steam_or_title_to_igdb_id: No IGDB ID found for AppID {appid}, falling back to title search: '{title}'", VERBOSITY_WARNING)
+
+    # Attempt lookup via steam name
+    query_name = (
+        f'search "{title}";'
+        f'fields id, name;'
+        f'where category = 0; limit 1;'
+    )
+    log(f"igdbSteamLookup.py.steam_or_title_to_igdb_id: Querying IGDB games for title '{title}'", VERBOSITY_TRACE)
+    resp = igdb_post("games", query_name, headers)
+    resp.raise_for_status()
+    data = resp.json()
+
+    if data:
+        game_id = data[0]["id"]
+        log(f"Found IGDB ID {game_id} for title '{title}'", VERBOSITY_INFO)
+        return game_id
+
+    log(f"igdbSteamLookup.py.steam_or_title_to_igdb_id: No IGDB ID found for title '{title}'", VERBOSITY_WARNING)
+    return None
+
+def igdb_post(endpoint: str, query: str, headers: Dict[str, str]) -> requests.Response:
+    global _next_allowed_time
+    now = time.time()
+
+    # Wait only if we must to respect rate limiting
+    if now < _next_allowed_time:
+        wait_seconds = _next_allowed_time - now
+        log(f"igdbSteamLookup.py.igdb_post: Waiting {wait_seconds:.3f}s to respect rate limit", VERBOSITY_TRACE)
+        time.sleep(wait_seconds)
+
+    if VERBOSITY == VERBOSITY_TRACE:
+        log(f"igdbSteamLookup.py.igdb_post: POST {IGDB_BASE}/{endpoint}", VERBOSITY_TRACE)
+        log(f"igdbSteamLookup.py.igdb_post:Headers: {headers}", VERBOSITY_TRACE)
+        log(f"igdbSteamLookup.py.igdb_post:Data: {query}", VERBOSITY_TRACE)
+
+    resp = requests.post(f"{IGDB_BASE}/{endpoint}", headers=headers, data=query, timeout=10)
+
+    # After request, set next allowed time
+    _next_allowed_time = time.time() + igbd_rate_frequency_ms / 1000
+
+    if resp.status_code == 429:
+        log(f"igdbSteamLookup.py.igdb_post: Rate limited on endpoint '{endpoint}', retrying after 10s", VERBOSITY_WARNING)
+        time.sleep(10)
+        resp = requests.post(f"{IGDB_BASE}/{endpoint}", headers=headers, data=query, timeout=10)
+        _next_allowed_time = time.time() + igbd_rate_frequency_ms / 1000
+
+    return resp
+
+
 
 # ───────────────────────────────────────────
 # MAIN BATCH PROCESSOR
@@ -81,6 +142,9 @@ def process_and_export_steam_rows(input_rows: List[Dict[str, str]]):
     Enrich each row from a Steam export with its IGDB game ID.
     Writes the result to ../output/steamIgdbLookup.csv and returns the new rows.
     """
+    if not twitch_client_id and not twitch_client_secret:
+        log("igdbSteamLookup.py.process_and_export_steam_rows: Both twitch_client_id and twitch_client_secret must be provided in .env", VERBOSITY_ERROR)
+        return None
     token = get_bearer_token(twitch_client_id, twitch_client_secret)
     headers = igdb_headers(token, twitch_client_id)
 
@@ -91,13 +155,18 @@ def process_and_export_steam_rows(input_rows: List[Dict[str, str]]):
     enriched: List[Dict[str, str]] = []
     for idx, row in enumerate(input_rows, start=1):
         appid = row.get("appid")
-        igdb_id = steam_to_igdb_id(appid, headers)
-        log(f"igdbSteamLookup.py.process_and_export_steam_rows: {idx}/{total} SteamID {appid} is igdbID {igdb_id}", VERBOSITY_DEBUG)
-        #TODO: Add error log if id is empty and skip row
-        row["igdb_id"] = str(igdb_id) if igdb_id is not None else ""
-        enriched.append(row)
+        title = row.get("name", "").strip()
 
-        time.sleep(igbd_rate_frequency_ms / 1000)
+        log(f"[{idx}/{total}] Looking up IGDB ID for Steam AppID {appid} / Title '{title}'", VERBOSITY_INFO)
+        igdb_id = steam_or_title_to_igdb_id(appid, title, headers)
+
+        if igdb_id is None:
+            log(f"igdbSteamLookup.py.process_and_export_steam_rows: No IGDB ID found for AppID {appid} / Title '{title}'", VERBOSITY_WARNING)
+            continue
+
+        log(f"igdbSteamLookup.py.process_and_export_steam_rows: Found IGDB ID {igdb_id} for AppID {appid} / Title '{title}'", VERBOSITY_DEBUG)
+        row["igdb_id"] = str(igdb_id)
+        enriched.append(row)
 
     # Output
     output_dir = Path(__file__).parent.parent / "output"
