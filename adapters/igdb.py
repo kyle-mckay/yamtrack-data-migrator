@@ -51,6 +51,7 @@ Full Column List as of 2025-07-10: id, game, url, rating, category, release_date
 """
 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
+from .validate import validate_row
 
 def map_row(row, strategy=None, idx=None, total=None):
     """
@@ -116,8 +117,12 @@ def map_row(row, strategy=None, idx=None, total=None):
         "end_date": end_date,
         "progress": progress,
     }
-    log(f"Mapped row: {mapped}", VERBOSITY_DEBUG)
+
+    valid = validate_row(mapped)
+    if valid:
+        log(f"igdb.py.map_row: Mapped row: {mapped}", VERBOSITY_DEBUG)
     return mapped
+    
 
 def process_rows(rows,strategy=None):
     """

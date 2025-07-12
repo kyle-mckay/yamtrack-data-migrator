@@ -24,6 +24,7 @@ Full Column List as of 2025-07-10: Title,Author,Series,Status,Privacy,Hardcover 
 """
 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
+from .validate import validate_row
 
 def map_row(row, idx=None, total=None):
     """
@@ -92,7 +93,10 @@ def map_row(row, idx=None, total=None):
         "end_date": end_date,
         "progress": row.get("Pages"),
     }
-    log(f"Mapped row: {mapped}", VERBOSITY_DEBUG)
+    
+    valid = validate_row(mapped)
+    if valid:
+        log(f"igdb.py.map_row: Mapped row: {mapped}", VERBOSITY_DEBUG)
     return mapped
 
 def process_rows(rows):
