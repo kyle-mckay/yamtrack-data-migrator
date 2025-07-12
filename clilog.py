@@ -22,8 +22,8 @@ log_file_path = Path(__file__).parent / 'logs' / 'app.log'
 _COLOR_RESET   = "\033[0m"
 _COLOR_MAP = {
     VERBOSITY_ERROR:   ("\033[91m", "[ERROR]"),
-    VERBOSITY_WARNING: ("\033[93m", "[WARN]"),
-    VERBOSITY_INFO:    ("\033[92m", "[INFO]"),
+    VERBOSITY_WARNING: ("\033[93m", "[WARN] "),
+    VERBOSITY_INFO:    ("\033[92m", "[INFO] "),
     VERBOSITY_DEBUG:   ("\033[96m", "[DEBUG]"),
     VERBOSITY_TRACE:   ("\033[95m", "[TRACE]"),
 }
@@ -34,9 +34,32 @@ def _strip_ansi(text: str) -> str:
     """Remove ANSI escape codes from a string."""
     return _ansi_escape_re.sub("", text)
 
+def _log_internal_warning(msg):
+    # Always print warning in yellow, ignoring VERBOSITY filtering and recursion
+    warning_label = "\033[38;5;208m[INTL] \033[0m"
+    print(f"{warning_label}{msg}", file=sys.stdout)
+    if write_to_file:
+        _log_to_file(msg, VERBOSITY_WARNING)
+
+_in_log_self_check = False
+
 def log(msg, level=None):
+    global _in_log_self_check
     if level is None:
         level = VERBOSITY_INFO
+
+    # Always check malformed message first, regardless of verbosity
+    if not _in_log_self_check:
+        if level != VERBOSITY_INFO and not msg.startswith('['):
+            _in_log_self_check = True
+            warning_msg = (
+                f"[logging.py.log] Malformed log message at level {level}, "
+                f"missing correct '[filename.py.functionName]' prefix. Message: {msg}"
+            )
+            _log_internal_warning(warning_msg)
+            _in_log_self_check = False
+
+    # Now filter normal messages by verbosity
     if level > VERBOSITY:
         return
 
@@ -62,11 +85,8 @@ def _log_to_file(msg, level):
     with open(log_file_path, 'a', encoding='utf-8') as log_file:
         log_file.write(f"[{timestamp}] {msg}\n")
 
-
 def clear_logs():
     if clear_logs_on_start:
         if log_file_path.exists():
             log_file_path.unlink()
     return clear_logs_on_start
-
-    

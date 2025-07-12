@@ -58,9 +58,9 @@ def map_row(row, strategy=None, idx=None, total=None):
     Map a single hardcover row dict to the target schema.
     Optionally logs the row index and total.
     """
-    log(f"=========================", VERBOSITY_DEBUG)
+    log(f"[igdb.py.map_row] =========================", VERBOSITY_DEBUG)
     if idx is not None and total is not None:
-        log(f"Mapping row {idx}/{total}", VERBOSITY_DEBUG)
+        log(f"[igdb.py.map_row] Mapping row {idx}/{total}", VERBOSITY_DEBUG)
 
     source="igdb"
     media_id=None
@@ -98,7 +98,7 @@ def map_row(row, strategy=None, idx=None, total=None):
             media_id=row.get("id")
             title=row.get("game")
         case _:
-            log(f"igdb.py.map_row: Unknown strategy = {strategy}",VERBOSITY_ERROR)
+            log(f"[igdb.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
             return "Unknown Souce"
 
     # Build mapped row
@@ -120,7 +120,7 @@ def map_row(row, strategy=None, idx=None, total=None):
 
     valid = validate_row(mapped)
     if valid:
-        log(f"igdb.py.map_row: Mapped row: {mapped}", VERBOSITY_DEBUG)
+        log(f"[igdb.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
     return mapped
     
 
@@ -129,13 +129,13 @@ def process_rows(rows,strategy=None):
     Process a list of dictionaries representing rows from the file.
     Returns a list of mapped rows.
     """
-    log("==============================================", VERBOSITY_DEBUG)
-    log(f"igdb.py.process_rows: Processing {len(rows)} rows from igdb", VERBOSITY_DEBUG)
-    log(f"igdb.py.process_rows: Strategy being used = {strategy}", VERBOSITY_DEBUG)
+    log("[igdb.py.process_rows] ==============================================", VERBOSITY_DEBUG)
+    log(f"[igdb.py.process_rows] Processing {len(rows)} rows from igdb", VERBOSITY_DEBUG)
+    log(f"[igdb.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
     if rows:
         total = len(rows)
         mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
-        log(f"=========================", VERBOSITY_DEBUG)
-        log("Mapped all rows", VERBOSITY_DEBUG)
+        log(f"[igdb.py.process_rows] =========================", VERBOSITY_DEBUG)
+        log("[igdb.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
         return mapped_rows
     return []
