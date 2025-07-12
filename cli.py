@@ -1,22 +1,41 @@
-# Standard library imports
+# Third party imports
 import csv
 import argparse
 import sys
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+from pathlib import Path
 
-# Add import for hardcover adapter
-from adapters import hardcover
-from helpers import (
+# First party imports
+from clilog import (
     log,
+    clear_logs,
+    VERBOSITY,
     VERBOSITY_ERROR,
     VERBOSITY_WARNING,
     VERBOSITY_INFO,
     VERBOSITY_DEBUG,
     VERBOSITY_TRACE,
+    clear_logs_on_start,
 )
-import helpers
+import clilog
 
+from adapters import (
+    hardcover,
+    igdb,
+)
+import adapters
+from helpers.steamExportLibrary import export_steam_library_to_csv
+from helpers.igdbSteamLookup import process_and_export_steam_rows
+
+# Variable defenitions
+ENV_PATH = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=ENV_PATH)
+
+log(f"cli.py: VERBOSITY obtained fron .env = {VERBOSITY}",VERBOSITY_DEBUG)
+log(f".env path loaded as {ENV_PATH}",VERBOSITY_TRACE)
+log(f"cli.py: clear_logs = {clear_logs()}", VERBOSITY_DEBUG)
 
 # File Importers
 
@@ -32,9 +51,9 @@ def import_csv(input_file):
         rows = list(reader)
         for idx, row in enumerate(rows, 1):
             log(f"Row {idx}: {row}", VERBOSITY_TRACE)
-        # Use helpers.VERBOSITY and helpers.VERBOSITY_TRACE
-        if helpers.VERBOSITY >= VERBOSITY_TRACE:
-            log("[TRACE] Outputting all row contents:", VERBOSITY_TRACE)
+        # Use clilog.VERBOSITY and clilog.VERBOSITY_TRACE
+        if clilog.VERBOSITY >= VERBOSITY_TRACE:
+            log("Outputting all row contents:", VERBOSITY_TRACE)
             for idx, row in enumerate(rows, 1):
                 log(f"TRACE Row {idx}: {row}", VERBOSITY_TRACE)
     return rows
@@ -51,17 +70,17 @@ def import_xml(input_file):
         tree = ET.parse(input_file)
         root = tree.getroot()
         for idx, elem in enumerate(root, 1):
-            log(f"Element {idx}: {ET.tostring(elem, encoding='unicode').strip()}", VERBOSITY_DEBUG)
+            log(f"cli.py.export_xml: Element {idx}: {ET.tostring(elem, encoding='unicode').strip()}", VERBOSITY_DEBUG)
             print(ET.tostring(elem, encoding='unicode').strip())
     except Exception as e:
-        log(f"Failed to parse XML: {e}", VERBOSITY_ERROR)
+        log(f"cli.py.export_xml: Failed to parse XML: {e}", VERBOSITY_ERROR)
 
 def export_csv(rows, output_file):
     """
     Export a list of dictionaries to a CSV file.
     """
     if not rows:
-        log("No rows to export.", VERBOSITY_WARNING)
+        log("cli.py.export_csv: No rows to export.", VERBOSITY_WARNING)
         return
     fieldnames = list(rows[0].keys())
     log(f"Exporting {len(rows)} rows to {output_file}", VERBOSITY_INFO)
@@ -70,8 +89,8 @@ def export_csv(rows, output_file):
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
-    log(f"Full output file path: {os.path.abspath(output_file)}", VERBOSITY_DEBUG)
-    log(f"Export complete.", VERBOSITY_INFO)
+    log(f"cli.py.export_csv: Full output file path: {os.path.abspath(output_file)}", VERBOSITY_DEBUG)
+    log("Export complete.", VERBOSITY_INFO)
 
 # Main entry point for the CLI
 def main():
@@ -79,24 +98,40 @@ def main():
     Parse command-line arguments, detect file type, and call the appropriate import function.
     """
     parser = argparse.ArgumentParser(description="YamTrack CSV Importer")
-    parser.add_argument('--source', choices=['hardcover'], help='Source type (currently only hardcover CSV supported)')
+    parser.add_argument('--source', choices=['hardcover', 'igdb'], help='Source type (currently only hardcover CSV supported)')
     parser.add_argument('--input', required=True, help='Input file (CSV or XML)')
     parser.add_argument('--output', required=False, help='Output file (CSV)')
     parser.add_argument('--verbosity', '-v', type=int, choices=range(0, 5), help='Verbosity level: 0=ERROR, 1=WARNING, 2=INFO, 3=DEBUG, 4=TRACE')
+    parser.add_argument('--strategy', required=False, help="Strategy override when calling adapter")
     args = parser.parse_args()
+    load_dotenv()
 
     if args.verbosity is not None:
-        helpers.VERBOSITY = args.verbosity
-        log(f"Verbosity set to {helpers.VERBOSITY}", VERBOSITY_DEBUG)
+        clilog.VERBOSITY = args.verbosity
+        log(f"cli.py.main: Verbosity set to {clilog.VERBOSITY}", VERBOSITY_DEBUG)
 
     input_file = args.input
-    log(f"Input file: {input_file}", VERBOSITY_DEBUG)
+    log(f"cli.py.main: Input file parsed from switch: {input_file}", VERBOSITY_DEBUG)
+    if input_file == "steam":
+        log("cli.py.main: Detecting put as steam, attempting to generate csv from steam API", VERBOSITY_DEBUG)
+        strategy="steam_api"
+        log("Input is steam, attempting to get steam library",VERBOSITY_INFO)
+        input_file = export_steam_library_to_csv()
+        log(f"cli.py.main: updated input_file = {input_file}",VERBOSITY_DEBUG)
+        if args.source == "igdb":
+            log("Source is igdb, using steam export to lookup id's",VERBOSITY_INFO)
+            input_file = process_and_export_steam_rows(import_csv(input_file))
+            log(f"igdb ID's obtained and saved to {input_file}", VERBOSITY_INFO)
+
+    strategy = args.strategy or args.source
+    log(f"cli.py.main: Strategy: {strategy}", VERBOSITY_DEBUG)
+    
     output_file = args.output
-    log(f"Output file: {output_file}", VERBOSITY_DEBUG)
+    log(f"cli.py.main: Output file: {output_file}", VERBOSITY_DEBUG)
 
     # If output_file is not provided, generate it based on input_file and timestamp
     if not output_file:
-        log(f"No --output specified. Generating output filename based on input: {input_file}", VERBOSITY_WARNING)
+        log(f"cli.py.main: No --output specified. Generating output filename based on input: {input_file}", VERBOSITY_WARNING)
         base, _ = os.path.splitext(os.path.basename(input_file))
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         output_dir = os.path.join(os.path.dirname(__file__), "output")
@@ -111,7 +146,7 @@ def main():
     elif input_file.lower().endswith('.xml'):
         filetype = 'xml'
     else:
-        log(f"Unsupported file type for input: {input_file}", VERBOSITY_ERROR)
+        log(f"cli.py.main: Unsupported file type for input: {input_file}", VERBOSITY_ERROR)
         sys.exit(1)
 
     log(f"Detected file type: {filetype.upper()}", VERBOSITY_INFO)
@@ -121,8 +156,10 @@ def main():
         rows = import_csv(input_file)
         if args.source == 'hardcover':
             mapped_rows = hardcover.process_rows(rows)
+        elif args.source == 'igdb':
+            mapped_rows = igdb.process_rows(rows, strategy)
         else:
-            log("No adapter specified for CSV source.", VERBOSITY_ERROR)
+            log("cli.py.main: No adapter specified for CSV source.", VERBOSITY_ERROR)
             sys.exit(1)
     elif filetype == 'xml':
         import_xml(input_file)

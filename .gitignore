@@ -5,3 +5,7 @@ __pycache__/*
 *.xml
 *.json
 output/*
+.env
+env/*
+*.log
+logs/*
