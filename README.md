@@ -12,9 +12,9 @@ A Python script to convert external media tracker exports (Trakt, MyAnimeList, e
 ---
 
 ## Planned Features
-- **Multi-Source Support**: Convert from Trakt, MyAnimeList (MAL), and more
+- **Multi-Source Support**: Convert from Hardcover, The Internet Game Database (igdb), and more
 - **Flexible Input Formats**: CSV, XML, or JSON (source-dependent)
-- **Data Normalization**: Automatically maps fields like statuses, scores, and dates
+- **Data Normalization**: Maps fields like statuses, scores, and dates to their specified format
 - **CLI & Interactive Modes**: Use command-line arguments or prompts
 
 ---
@@ -22,7 +22,9 @@ A Python script to convert external media tracker exports (Trakt, MyAnimeList, e
 ## Supported Sources
 | Source   | Input Format | Notes                          |
 |----------|--------------|--------------------------------|
-| Hardcover| CSV          | Exports from hardcover.app       |
+| [Hardcover](https://hardcover.app) | CSV          | Exports from hardcover export       |
+| [IGDB](https://igdb.com) | CSV | Exports from lists download
+| [Steam](https://store.steampowered.com) | API | Exports owned cames and queries igdb api for id's |
 | *More coming soon!* | | Submit requests via Issues |
 
 ---
@@ -65,6 +67,8 @@ Once you have generated a csv with `cli.sh`, do the following with the output fi
 2. On the bottom left, open settings and choose the `import data` option
 3. Under the `YamTrack` source, click the `Select CSV File` button and upload your generated csv
 4. Thats it!
+
+---
 
 ## File Formats
 
