@@ -122,9 +122,6 @@ def main():
             log("Source is igdb, using steam export to lookup id's",VERBOSITY_INFO)
             input_file = process_and_export_steam_rows(import_csv(input_file))
             log(f"igdb ID's obtained and saved to {input_file}", VERBOSITY_INFO)
-
-    strategy = args.strategy or args.source
-    log(f"cli.py.main: Strategy: {strategy}", VERBOSITY_DEBUG)
     
     output_file = args.output
     log(f"cli.py.main: Output file: {output_file}", VERBOSITY_DEBUG)
@@ -141,15 +138,38 @@ def main():
 
     filetype = None
     # Detect file type by extension
-    if input_file.lower().endswith('.csv'):
+    input_path = Path(input_file)
+    log(f"cli.py.main: Input file path: {input_path}", VERBOSITY_DEBUG)
+    file_name = input_path.name.lower()
+    log(f"cli.py.main: Lowercase input file name: {file_name}", VERBOSITY_DEBUG)
+    if file_name.endswith('.csv'):
         filetype = 'csv'
-    elif input_file.lower().endswith('.xml'):
+    elif file_name.endswith('.xml'):
         filetype = 'xml'
     else:
         log(f"cli.py.main: Unsupported file type for input: {input_file}", VERBOSITY_ERROR)
-        sys.exit(1)
 
     log(f"Detected file type: {filetype.upper()}", VERBOSITY_INFO)
+
+    # Detect file name based on source and suggest strategy
+    strategy = args.strategy
+    if not strategy:
+        if filetype == 'csv':
+            
+            if args.source == 'igdb':
+                if file_name.endswith('played.csv'):
+                    log("cli.py.main: Detected IGDB played list CSV", VERBOSITY_DEBUG)
+                    strategy = 'list-played'
+                if file_name.endswith('playing.csv'):
+                    log("cli.py.main: Detected IGDB playing list CSV", VERBOSITY_DEBUG)
+                    strategy = 'list-playing'
+                if file_name.endswith('want-to-play.csv'):
+                    log("cli.py.main: Detected IGDB want-to-play list CSV", VERBOSITY_DEBUG)
+                    strategy = 'list-want'
+    else:
+        strategy = args.source
+
+    log(f"cli.py.main: Strategy: {strategy}", VERBOSITY_DEBUG)
 
     # Call the appropriate import function
     if filetype == 'csv':
