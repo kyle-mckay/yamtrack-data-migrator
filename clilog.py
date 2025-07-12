@@ -3,6 +3,7 @@ import os
 import re
 from dotenv import load_dotenv
 from pathlib import Path
+from datetime import datetime
 
 ENV_PATH = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=ENV_PATH)
@@ -56,9 +57,11 @@ def log(msg, level=None):
 def _log_to_file(msg, level):
     if level > VERBOSITY:
         return
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(log_file_path, 'a', encoding='utf-8') as log_file:
-        log_file.write(f"{msg}\n")
+        log_file.write(f"[{timestamp}] {msg}\n")
+
 
 def clear_logs():
     if clear_logs_on_start:

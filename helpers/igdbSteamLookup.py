@@ -181,7 +181,7 @@ if __name__ == "__main__":
     Runs this script as a standalone utility using the default export file from `steamExportLibrary.py`.
     Expects the file to be in ../output/steam-export.csv.
     """
-    # Quick demo: load the steam-export CSV and enrich it
+    #TODO: Add flags for custom input/output paths
     demo_input = Path(__file__).parent.parent / "output" / "steam-export.csv"
     if not demo_input.exists():
         raise FileNotFoundError("Run steam_library.py first to produce steam-export.csv")

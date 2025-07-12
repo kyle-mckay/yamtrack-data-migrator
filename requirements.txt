@@ -4,3 +4,4 @@ idna==3.10
 requests==2.32.4
 urllib3==2.5.0
 python-dotenv
+pytest==8.4.1
