@@ -2,7 +2,33 @@
 Column mapping for igdb adapter.
 This module defines the column mapping for igdb export files and provides a function to map the columns from the input file to the expected format.
 
-## Summary of the column mapping:
+## Strategies
+
+### steam_api
+
+Uses the `steamExportLibrary.py` to fetch owned games from Steam and enrich them with IGDB IDs.
+
+| Target Column Name | Source Column Name | Required | Normalization Notes |
+| --- | --- | --- | --- |
+| source | Cond. | Yes | Hardcoded value as "igdb" for all entries |
+| media_id | `igdb_id` | Yes | As is |
+| media_type | Cond. | Yes | Hardcoded value as "game" for all entries |
+| title | `name` | Cond. | Can auto-populate from source |
+| image | N/A | No | Can auto-populate from source |
+| season_number | N/A | Cond. | Not applicable for this source |
+| episode_number | N/A | Cond. | Not applicable for this source |
+| score | N/A | No | Not supported by list csv export |
+| status | Cond. | Yes | Default to `Planning`|
+| notes | N/A | No | As is |
+| start_date | N/A | No | |
+| end_date | N/A | No | |
+| progress | N/A | No | |
+
+Full Column List as of 2025-07-10: appid, name, playtime_forever, playtime_windows_forever, playtime_mac_forever, playtime_linux_forever, rtime_last_played, playtime_2weeks, has_community_visible_stats, img_icon_url, img_logo_url, igdb_id
+
+### igdb
+
+Uses the `Download CSV` feature on igdb lists
 
 | Target Column Name | Source Column Name | Required | Normalization Notes |
 | --- | --- | --- | --- |
@@ -14,7 +40,7 @@ This module defines the column mapping for igdb export files and provides a func
 | season_number | N/A | Cond. | Not applicable for this source |
 | episode_number | N/A | Cond. | Not applicable for this source |
 | score | N/A | No | Not supported by list csv export |
-| status | Cond. | Yes | Default to `Planning`, can parse filename for auto lists if filename starts with `Played` = `Completed`, `Want` = `Planning`, `playing` = `In progress` |
+| status | Cond. | Yes | Default to `Planning`|
 | notes | N/A | No | As is |
 | start_date | N/A | No | |
 | end_date | N/A | No | |
@@ -51,12 +77,13 @@ def map_row(row, strategy=None, idx=None, total=None):
 
     match strategy:
         case "steam_api":
-            # Expected Columns: appid,name,playtime_forever,playtime_windows_forever,playtime_mac_forever,playtime_linux_forever,rtime_last_played,playtime_2weeks,has_community_visible_stats,img_icon_url,img_logo_url,igdb_id
             media_id=row.get("igdb_id")
             title=row.get("name")
         
         case "igdb":
             media_id=row.get("id")
+            title=row.get("game")
+            # rating field in list exports is a global rating, not a user rating
         case _:
             log(f"igdb.py.map_row: Unknown strategy = {strategy}",VERBOSITY_ERROR)
             return "Unknown Souce"
@@ -91,6 +118,7 @@ def process_rows(rows,strategy=None):
     if rows:
         total = len(rows)
         mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
+        log(f"=========================", VERBOSITY_DEBUG)
         log("Mapped all rows", VERBOSITY_DEBUG)
         return mapped_rows
     return []

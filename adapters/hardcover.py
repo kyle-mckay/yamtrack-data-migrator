@@ -106,5 +106,6 @@ def process_rows(rows):
         total = len(rows)
         mapped_rows = [map_row(row, idx+1, total) for idx, row in enumerate(rows)]
         log(f"Mapped all rows", VERBOSITY_DEBUG)
+        log(f"=========================", VERBOSITY_DEBUG)
         return mapped_rows
     return []

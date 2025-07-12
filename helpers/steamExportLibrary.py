@@ -1,3 +1,10 @@
+"""
+Fetch owned games from Steam using the Steam Web API and export them to a CSV file.
+Requirements:
+- .env file with `steam_secret` and `steam_id64`
+- The script will create a CSV file named `steam-export.csv` in the specified output directory
+"""
+
 import os
 import csv
 import requests
@@ -5,6 +12,10 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
+
+# ───────────────────────────────────────────
+# MAIN BATCH PROCESSOR
+# ───────────────────────────────────────────
 
 def get_owned_games(steam_secret: str, steam_id64: str):
     log(f"steamExportLibrary.py.get_owned_games: API key = {steam_secret}", VERBOSITY_TRACE)
@@ -37,7 +48,7 @@ def export_steam_library_to_csv(output_dir: Path = None) -> Path:
         log("steamExportLibrary.py.export_steam_library_to_csv: No games found or profile is private.",VERBOSITY_WARNING)
 
     if output_dir is None:
-        output_dir = Path(__file__).parent.parent / 'outputs'
+        output_dir = Path(__file__).parent.parent / 'output'
     log(f"steamExportLibrary.py.get_owned_games: output_dir = {output_dir}",VERBOSITY_TRACE)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / 'steam-export.csv'
@@ -70,7 +81,14 @@ def export_steam_library_to_csv(output_dir: Path = None) -> Path:
 
     return str(output_file.resolve())
 
+# ───────────────────────────────────────────
+# OPTIONAL STAND‑ALONE EXECUTION
+# ───────────────────────────────────────────
+
 if __name__ == "__main__":
+    """
+    Runs this script as a standalone utility to export the Steam library.
+    """
     env_path = Path(__file__).parent.parent / '.env'
     load_dotenv(dotenv_path=env_path)
     path = export_steam_library_to_csv()

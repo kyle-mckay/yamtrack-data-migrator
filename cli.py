@@ -53,7 +53,7 @@ def import_csv(input_file):
             log(f"Row {idx}: {row}", VERBOSITY_TRACE)
         # Use clilog.VERBOSITY and clilog.VERBOSITY_TRACE
         if clilog.VERBOSITY >= VERBOSITY_TRACE:
-            log("[TRACE] Outputting all row contents:", VERBOSITY_TRACE)
+            log("Outputting all row contents:", VERBOSITY_TRACE)
             for idx, row in enumerate(rows, 1):
                 log(f"TRACE Row {idx}: {row}", VERBOSITY_TRACE)
     return rows
