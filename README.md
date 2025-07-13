@@ -22,19 +22,20 @@ A Python script to convert external media tracker exports (Trakt, MyAnimeList, e
 ## Supported Sources
 | Source   | Input Format | Notes                          |
 |----------|--------------|--------------------------------|
-| [Hardcover](https://hardcover.app) | CSV          | Exports from hardcover export       |
-| [IGDB](https://igdb.com) | CSV | Exports from lists download
+| [Hardcover](https://hardcover.app) | CSV | Built in export |
+| [IGDB](https://igdb.com) | CSV | Exports from lists download |
 | [Steam](https://store.steampowered.com) | API | Exports owned cames and queries igdb api for id's |
+| [Open Library](openlibrary.org) | CSV | Built in export |
 | *More coming soon!* | | Submit requests via Issues |
 
 ---
 
-## Installation
+## Setup
 
-To be updated in more detail
+Setting up the script is rather simple. The following setup steps assume the use of Python Virtual Environments.
 
-1. Clone repo `git clone <git url will go here>`
-2. Navigate to the directory
+1. Clone repo `git clone https://github.com/kyle-mckay/yamtrack-data-migrator/`
+2. Navigate to the directory `cd yamtrack-data-migrator`
 3. Create python venv in repo directory `python3 -m venv env`
 4. Activate the venv `source env/bin/activate`
 5. Install dependencies `pip install -r requirements.txt`
@@ -49,6 +50,7 @@ Breakdown to be added
 
 ## Usage
 ### Command-Line (Recommended)
+
 ```bash
 python3 cli.py --source <source> --input <input_file> 
 ```
@@ -56,7 +58,13 @@ python3 cli.py --source <source> --input <input_file>
 **Examples**:  
 ```bash
 # Convert Hardcover CSV
-python cli.py --source hardcover --input hardcover_export.csv --output yamtrack_import.csv
+python3 cli.py --source hardcover --input hardcover_export.csv --output yamtrack_import.csv
+
+# Convert an IGDB auto list CSV
+python3 cli.py --source igdb --input played.csv
+
+# Convert your steam library and match to igdb (uses your own API keys)
+python3 cli.py --source igdb --input steam
 ```
 
 ### Importing back into YamTrack
