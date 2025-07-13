@@ -24,6 +24,7 @@ import clilog
 from adapters import (
     hardcover,
     igdb,
+    openlibrary,
 )
 import adapters
 from helpers.steamExportLibrary import export_steam_library_to_csv
@@ -51,7 +52,7 @@ def import_csv(input_file):
         rows = list(reader)
         # Use clilog.VERBOSITY and clilog.VERBOSITY_TRACE
         if clilog.VERBOSITY >= VERBOSITY_TRACE:
-            log("Outputting all row contents:", VERBOSITY_TRACE)
+            log("[cli.py.import_csv] Outputting all row contents:", VERBOSITY_TRACE)
             for idx, row in enumerate(rows, 1):
                 log(f"[cli.py.import_csv] Row {idx}: {row}", VERBOSITY_TRACE)
     return rows
@@ -98,7 +99,7 @@ def main():
     strategy = None
     
     parser = argparse.ArgumentParser(description="YamTrack CSV Importer")
-    parser.add_argument('--source', choices=['hardcover', 'igdb'], help='Source type (currently only hardcover CSV supported)')
+    parser.add_argument('--source', choices=['hardcover', 'igdb', 'openlibrary'], help='Source type (currently only hardcover CSV supported)')
     parser.add_argument('--input', required=True, help='Input file (CSV or XML)')
     parser.add_argument('--output', required=False, help='Output file (CSV)')
     parser.add_argument('--verbosity', '-v', type=int, choices=range(0, 5), help='Verbosity level: 0=ERROR, 1=WARNING, 2=INFO, 3=DEBUG, 4=TRACE')
@@ -128,7 +129,7 @@ def main():
 
     # If output_file is not provided, generate it based on input_file and timestamp
     if not output_file:
-        log(f"[cli.py.main] No --output specified. Generating output filename based on input: {input_file}", VERBOSITY_WARNING)
+        log(f"No --output specified. Generating output filename based on input: {input_file}", VERBOSITY_INFO)
         base, _ = os.path.splitext(os.path.basename(input_file))
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         output_dir = os.path.join(os.path.dirname(__file__), "output")
@@ -165,6 +166,10 @@ def main():
                 if file_name.endswith('want-to-play.csv'):
                     log("[cli.py.main] Detected IGDB want-to-play list CSV", VERBOSITY_DEBUG)
                     strategy = 'list-want'
+            if args.source == 'openlibrary':
+                if file_name.endswith('openlibrary_readinglog.csv'):
+                    log("[cli.py.main] Detected OpenLibrary reading log CSV", VERBOSITY_DEBUG)
+                    strategy = 'openlibrary-reading-log'
         else:
             # default strategy to the source value
             strategy = args.source
@@ -178,6 +183,8 @@ def main():
             mapped_rows = hardcover.process_rows(rows)
         elif args.source == 'igdb':
             mapped_rows = igdb.process_rows(rows, strategy)
+        elif args.source == 'openlibrary':
+            mapped_rows = adapters.openlibrary.process_rows(rows, strategy)
         else:
             log("[cli.py.main] No adapter specified for CSV source.", VERBOSITY_ERROR)
             sys.exit(1)

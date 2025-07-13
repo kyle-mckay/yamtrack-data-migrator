@@ -55,7 +55,7 @@ from .validate import validate_row
 
 def map_row(row, strategy=None, idx=None, total=None):
     """
-    Map a single hardcover row dict to the target schema.
+    Map a single igdb row dict to the target schema.
     Optionally logs the row index and total.
     """
     log(f"[igdb.py.map_row] =========================", VERBOSITY_DEBUG)
