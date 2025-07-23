@@ -12,9 +12,6 @@ categories:
       - 'bug'
   - title: 'Maintenance'
     exclude-labels:
-      - 'major'
-      - 'minor'
-      - 'patch'
       - 'fix'
       - 'bugfix'
       - 'bug'
