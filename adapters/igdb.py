@@ -76,52 +76,59 @@ def map_row(row, strategy=None, idx=None, total=None):
     end_date=None
     progress=None
 
-    match strategy:
-        case "steam_api":
-            # File created with `cli.py --source igdb --input steam`
-            media_id=row.get("igdb_id")
-            title=row.get("name")
-        case "list-played":
-            # Stretegy set if `--strategy` is none and input file was `played.csv`
-            media_id=row.get("id")
-            status="Completed"
-        case "list-playing":
-            # Strategy set if `--strategy` is none and input file was `playing.csv`
-            media_id=row.get("id")
-            status="In progress"
-        case "list-want":
-            # Strategy set if `--strategy` is none and input file was `want-to-play.csv`
-            media_id=row.get("id")
-            status="Planning"
-        case "igdb":
-            # Default if `--source` is `igdb`
-            media_id=row.get("id")
-            title=row.get("game")
-        case _:
-            log(f"[igdb.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
-            return "Unknown Souce"
+    try:
+        match strategy:
+            case "steam_api":
+                # File created with `cli.py --source igdb --input steam`
+                media_id=row.get("igdb_id")
+                title=row.get("name")
+            case "list-played":
+                # Stretegy set if `--strategy` is none and input file was `played.csv`
+                media_id=row.get("id")
+                status="Completed"
+            case "list-playing":
+                # Strategy set if `--strategy` is none and input file was `playing.csv`
+                media_id=row.get("id")
+                status="In progress"
+            case "list-want":
+                # Strategy set if `--strategy` is none and input file was `want-to-play.csv`
+                media_id=row.get("id")
+                status="Planning"
+            case "igdb":
+                # Default if `--source` is `igdb`
+                media_id=row.get("id")
+                title=row.get("game")
+            case _:
+                log(f"[igdb.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
+                return "Unknown Souce"
+    except Exception:
+        log(f"[igdb.py.map_row] Error mapping row with strategy '{strategy}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
 
-    # Build mapped row
-    mapped = {
-        "source": source,
-        "media_id": media_id,
-        "media_type": media_type,
-        "title": title,
-        "image": image,
-        "season_number": season_number,
-        "episode_number": episode_number,
-        "score": score,
-        "status": status,
-        "notes": notes,
-        "start_date": start_date,
-        "end_date": end_date,
-        "progress": progress,
-    }
+    try:
+        # Build mapped row
+        mapped = {
+            "source": source,
+            "media_id": media_id,
+            "media_type": media_type,
+            "title": title,
+            "image": image,
+            "season_number": season_number,
+            "episode_number": episode_number,
+            "score": score,
+            "status": status,
+            "notes": notes,
+            "start_date": start_date,
+            "end_date": end_date,
+            "progress": progress,
+        }
 
-    valid = validate_row(mapped)
-    if valid:
-        log(f"[igdb.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
-    return mapped
+        valid = validate_row(mapped)
+        if valid:
+            log(f"[igdb.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
+        return mapped
+    except Exception:
+        log(f"[igdb.py.map_row] Failed to build mapped row for row {idx}", VERBOSITY_ERROR)
+        return []
     
 
 def process_rows(rows,strategy=None):
@@ -129,13 +136,16 @@ def process_rows(rows,strategy=None):
     Process a list of dictionaries representing rows from the file.
     Returns a list of mapped rows.
     """
-    log("[igdb.py.process_rows] ==============================================", VERBOSITY_DEBUG)
-    log(f"[igdb.py.process_rows] Processing {len(rows)} rows from igdb", VERBOSITY_DEBUG)
-    log(f"[igdb.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
-    if rows:
-        total = len(rows)
-        mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
-        log(f"[igdb.py.process_rows] =========================", VERBOSITY_DEBUG)
-        log("[igdb.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
-        return mapped_rows
+    try:
+        log("[igdb.py.process_rows] ==============================================", VERBOSITY_DEBUG)
+        log(f"[igdb.py.process_rows] Processing {len(rows)} rows from igdb", VERBOSITY_DEBUG)
+        log(f"[igdb.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
+        if rows:
+            total = len(rows)
+            mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
+            log(f"[igdb.py.process_rows] =========================", VERBOSITY_DEBUG)
+            log("[igdb.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
+            return mapped_rows
+    except Exception:
+        log(f"[igdb.py.process_rows] Critical error processing rows", VERBOSITY_ERROR)
     return []

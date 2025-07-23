@@ -7,7 +7,7 @@ Reference: https://github.com/FuzzyGrim/Yamtrack/wiki/Yamtrack-CSV-Format
 from datetime import datetime
 from typing import Any, Dict, Tuple
 
-from clilog import log, VERBOSITY, VERBOSITY_WARNING, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
+from clilog import log, VERBOSITY, VERBOSITY_WARNING, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE, VERBOSITY_ERROR
 
 # === YamTrack static rule sets =================================================
 
@@ -30,109 +30,123 @@ def validate_row(mapped: Dict[str, Any]) -> Tuple[bool, str]:  # noqa: C901 (com
     """
     Validate a YamTrack row mapping.
 
-    Returns
-    -------
-    (bool, str)
-        • bool  - True when valid, False otherwise  
-        • str   - "OK" or the first failure reason
+    Returns bool  - True when valid, False otherwise
     """
-    log(f"[validate.py.validate_row] Validating row: {mapped}", VERBOSITY_TRACE)
-    # --- Required fields (always) ----------------------------------------------
+    try:
+        log(f"[validate.py.validate_row] Validating row: {mapped}", VERBOSITY_TRACE)
+        # --- Required fields (always) ----------------------------------------------
 
-    ## media_id
-    if not _present(mapped, "media_id"):
-        log("[validate.py.validate_row] Validation failed: media_id is required and cannot be blank", VERBOSITY_WARNING)
-        return False
-    else:
-        log(f"[validate.py.validate_row] media_id: {mapped['media_id']}", VERBOSITY_TRACE)
-
-    ## source
-    if not _present(mapped, "source"):
-        log("[validate.py.validate_row] Validation failed: source is required and cannot be blank", VERBOSITY_WARNING)
-        return False
-    else:
-        log(f"[validate.py.validate_row] source: {mapped['source']}", VERBOSITY_TRACE)
-        if mapped["source"] not in ALLOWED_SOURCES:
-            log(f"[validate.py.validate_row] Validation failed: source '{mapped['source']}' is not allowed. Allowed values: {ALLOWED_SOURCES}", VERBOSITY_WARNING)
+        ## media_id
+        column_name="media_id"
+        if not _present(mapped, "media_id"):
+            log("[validate.py.validate_row] Validation failed: media_id is required and cannot be blank", VERBOSITY_WARNING)
             return False
+        else:
+            log(f"[validate.py.validate_row] media_id: {mapped['media_id']}", VERBOSITY_TRACE)
 
-    ## media_type
-    if not _present(mapped, "media_type"):
-        log("[validate.py.validate_row] Validation failed: media_type is required", VERBOSITY_WARNING)
-        return False
-    else:
-        mt = mapped["media_type"]
-        log(f"[validate.py.validate_row] media_type: {mt}", VERBOSITY_TRACE)
-        if mt not in ALLOWED_MEDIA_TYPES:
-            log(f"[validate.py.validate_row] Validation failed: media_type '{mt}' is not allowed. Allowed values: {ALLOWED_MEDIA_TYPES}", VERBOSITY_WARNING)
+        ## source
+        column_name="source"
+        if not _present(mapped, "source"):
+            log("[validate.py.validate_row] Validation failed: source is required and cannot be blank", VERBOSITY_WARNING)
             return False
-        
-        ## season_number:
-        if _present(mapped, "season_number"):
-            log(f"[validate.py.validate_row] season_number: {mapped["season_number"]}", VERBOSITY_TRACE)
-
-        ## episode_number
-        if _present(mapped, "episode_number"):
-            log(f"[validate.py.validate_row] episode_number: {mapped["episode_number"]}", VERBOSITY_TRACE)    
-
-        if mt == "season" and not _present(mapped, "season_number"):
-            log("[validate.py.validate_row] Validation failed: season_number is required when media_type = season", VERBOSITY_WARNING)
-            return False
-        if mt == "episode" and not _present(mapped, "season_number") and not _present(mapped, "episode_number"):
-            log("[validate.py.validate_row] Validation failed: season_number and episode_number are required when media_type = episode", VERBOSITY_WARNING)
-            return False
-
-    ## status
-    if not _present(mapped, "status"):
-        log("[validate.py.validate_row] Validation failed: status is required", VERBOSITY_WARNING)
-        return False
-    else:
-        log(f"[validate.py.validate_row] status: {mapped['status']}", VERBOSITY_TRACE)
-        if mapped["status"] not in ALLOWED_STATUSES:
-            log(f"[validate.py.validate_row] Validation failed: status '{mapped['status']}' is not allowed. Allowed values: {ALLOWED_STATUSES}", VERBOSITY_WARNING)
-            return False
-
-    # --- Optional numeric and date fields --------------------------------------
-    ## title
-    if _present(mapped, "title"):
-        log(f"[validate.py.validate_row] title: {mapped['title']}", VERBOSITY_TRACE)
-
-    ## score
-    if _present(mapped, "score"):
-        log(f"[validate.py.validate_row] score: {mapped['score']}", VERBOSITY_TRACE)
-        if not mapped["score"] is None:
-            if not _is_decimal(mapped["score"]):
-                log("[validate.py.validate_row] Validation failed: score must be a decimal 0-10", VERBOSITY_WARNING)
+        else:
+            log(f"[validate.py.validate_row] source: {mapped['source']}", VERBOSITY_TRACE)
+            if mapped["source"] not in ALLOWED_SOURCES:
+                log(f"[validate.py.validate_row] Validation failed: source '{mapped['source']}' is not allowed. Allowed values: {ALLOWED_SOURCES}", VERBOSITY_WARNING)
                 return False
-    
-    ## progress
-    if _present(mapped, "progress"):
-        log(f"[validate.py.validate_row] progress: {mapped['progress']}", VERBOSITY_TRACE)
-        if not mapped["progress"] is None and not _is_int(mapped["progress"]):
-            log("[validate.py.validate_row] Validation failed: progress must be an integer", VERBOSITY_WARNING)
-            return False
-        
-    ## start_date and end_date
-    for date_field in ("start_date", "end_date"):
-        if _present(mapped, date_field):
-            log(f"[validate.py.validate_row] {date_field}: {mapped[date_field]}", VERBOSITY_TRACE)
-            if mapped[date_field] is not None and not _is_iso_ts(mapped[date_field]):
-                log(f"[validate.py.validate_row] Validation failed: {date_field} must be an ISO-8601 timestamp with timezone", VERBOSITY_WARNING)
-                return False, f"{date_field} must be an ISO-8601 timestamp with timezone"
-    
-        
-    ## image
-    if _present(mapped, "image"):
-        log(f"[validate.py.validate_row] image: {mapped['image']}", VERBOSITY_TRACE)
-    
-        
-    ## notes
-    if _present(mapped, "notes"):
-        log(f"[validate.py.validate_row] notes: {mapped['notes']}", VERBOSITY_TRACE)
 
-    # All rules satisfied
-    log("[validate.py.validate_row] Validation succeeded: row is valid", VERBOSITY_DEBUG)
-    return True
+        ## media_type
+        column_name="media_type"
+        if not _present(mapped, "media_type"):
+            log("[validate.py.validate_row] Validation failed: media_type is required", VERBOSITY_WARNING)
+            return False
+        else:
+            mt = mapped["media_type"]
+            log(f"[validate.py.validate_row] media_type: {mt}", VERBOSITY_TRACE)
+            if mt not in ALLOWED_MEDIA_TYPES:
+                log(f"[validate.py.validate_row] Validation failed: media_type '{mt}' is not allowed. Allowed values: {ALLOWED_MEDIA_TYPES}", VERBOSITY_WARNING)
+                return False
+            
+            ## season_number:
+            column_name="season_number"
+            if _present(mapped, "season_number"):
+                log(f"[validate.py.validate_row] season_number: {mapped["season_number"]}", VERBOSITY_TRACE)
+
+            ## episode_number
+            column_name="episode_number"
+            if _present(mapped, "episode_number"):
+                log(f"[validate.py.validate_row] episode_number: {mapped["episode_number"]}", VERBOSITY_TRACE)    
+            
+            column_name="season"
+            if mt == "season" and not _present(mapped, "season_number"):
+                log("[validate.py.validate_row] Validation failed: season_number is required when media_type = season", VERBOSITY_WARNING)
+                return False
+
+            column_name="episode"
+            if mt == "episode" and not _present(mapped, "season_number") and not _present(mapped, "episode_number"):
+                log("[validate.py.validate_row] Validation failed: season_number and episode_number are required when media_type = episode", VERBOSITY_WARNING)
+                return False
+
+        ## status
+        column_name="status"
+        if not _present(mapped, "status"):
+            log("[validate.py.validate_row] Validation failed: status is required", VERBOSITY_WARNING)
+            return False
+        else:
+            log(f"[validate.py.validate_row] status: {mapped['status']}", VERBOSITY_TRACE)
+            if mapped["status"] not in ALLOWED_STATUSES:
+                log(f"[validate.py.validate_row] Validation failed: status '{mapped['status']}' is not allowed. Allowed values: {ALLOWED_STATUSES}", VERBOSITY_WARNING)
+                return False
+
+        # --- Optional numeric and date fields --------------------------------------
+        ## title
+        column_name="title"
+        if _present(mapped, "title"):
+            log(f"[validate.py.validate_row] title: {mapped['title']}", VERBOSITY_TRACE)
+
+        ## score
+        column_name="score"
+        if _present(mapped, "score"):
+            log(f"[validate.py.validate_row] score: {mapped['score']}", VERBOSITY_TRACE)
+            if not mapped["score"] is None:
+                if not _is_decimal(mapped["score"]):
+                    log("[validate.py.validate_row] Validation failed: score must be a decimal 0-10", VERBOSITY_WARNING)
+                    return False
+        
+        ## progress
+        column_name="progress"
+        if _present(mapped, "progress"):
+            log(f"[validate.py.validate_row] progress: {mapped['progress']}", VERBOSITY_TRACE)
+            if not mapped["progress"] is None and not _is_int(mapped["progress"]):
+                log("[validate.py.validate_row] Validation failed: progress must be an integer", VERBOSITY_WARNING)
+                return False
+            
+        ## start_date and end_date
+        for date_field in ("start_date", "end_date"):
+            column_name="date_field"
+            if _present(mapped, date_field):
+                log(f"[validate.py.validate_row] {date_field}: {mapped[date_field]}", VERBOSITY_TRACE)
+                if mapped[date_field] is not None and not _is_iso_ts(mapped[date_field]):
+                    log(f"[validate.py.validate_row] Validation failed: {date_field} must be an ISO-8601 timestamp with timezone", VERBOSITY_WARNING)
+                    return False, f"{date_field} must be an ISO-8601 timestamp with timezone"
+        
+            
+        ## image
+        column_name="image"
+        if _present(mapped, "image"):
+            log(f"[validate.py.validate_row] image: {mapped['image']}", VERBOSITY_TRACE)
+        
+            
+        ## notes
+        column_name="notes"
+        if _present(mapped, "notes"):
+            log(f"[validate.py.validate_row] notes: {mapped['notes']}", VERBOSITY_TRACE)
+
+        # All rules satisfied
+        log("[validate.py.validate_row] Validation succeeded: row is valid", VERBOSITY_DEBUG)
+        return True
+    except Exception:
+        log(f"[validate.py.validate_row] Failed to validate the column '{column_name}'", VERBOSITY_ERROR)
 
 
 # Helpers
@@ -174,14 +188,17 @@ if __name__ == "__main__":
     """
     Call with `python -m adapters.validate` to run a smoke test.
     """
-    example = {
-        "media_id": "12345",
-        "source": "tmdb",
-        "media_type": "movie",
-        "status": "Completed",
-        "score": "8.7",
-        "start_date": "2023-01-16 03:56:13+00:00",
-        "end_date": None,
-    }
-    result = validate_row(example)
-    log(f"Smoke test result: {result}", VERBOSITY_INFO)  # (True, 'OK')
+    try:
+        example = {
+            "media_id": "12345",
+            "source": "tmdb",
+            "media_type": "movie",
+            "status": "Completed",
+            "score": "8.7",
+            "start_date": "2023-01-16 03:56:13+00:00",
+            "end_date": None,
+        }
+        result = validate_row(example)
+        log(f"Smoke test result: {result}", VERBOSITY_INFO)  # (True, 'OK')
+    except Exception:
+        log(f"[validate.py.__main__] Critical error running smoke test", VERBOSITY_ERROR)

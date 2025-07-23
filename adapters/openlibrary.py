@@ -54,68 +54,75 @@ def map_row(row, strategy=None, idx=None, total=None):
     end_date=None
     progress=None
 
-    match strategy:
-        case "openlibrary-reading-log":
-            # Stretegy set if `--strategy` is none and input file was `OpenLibrary_ReadingLog.csv`
-            media_id=row.get("Edition ID")
-            log(f"[openlibrary.py.map_row] Media ID: {media_id}", VERBOSITY_TRACE)
-            
-            status= row.get("Bookshelf").lower()
-            log(f"[openlibrary.py.map_row] Bookshelf status: {status}", VERBOSITY_TRACE)
+    try:
+        match strategy:
+            case "openlibrary-reading-log":
+                # Stretegy set if `--strategy` is none and input file was `OpenLibrary_ReadingLog.csv`
+                media_id=row.get("Edition ID")
+                log(f"[openlibrary.py.map_row] Media ID: {media_id}", VERBOSITY_TRACE)
+                
+                status= row.get("Bookshelf").lower()
+                log(f"[openlibrary.py.map_row] Bookshelf status: {status}", VERBOSITY_TRACE)
 
-            match status:
-                case "already read":
-                    status = "Completed"
-                    log (f"[openlibrary.py.map_row] Status mapped to Completed", VERBOSITY_TRACE)
-                case "currently reading":
-                    status = "In progress"
-                    log (f"[openlibrary.py.map_row] Status mapped to In progress", VERBOSITY_TRACE)
-                case "want to read":
-                    status = "Planning"
-                    log (f"[openlibrary.py.map_row] Status mapped to Planning", VERBOSITY_TRACE)
-                case _:
-                    log(f"[openlibrary.py.map_row] Bookshelf status not a default bookshelf name: {status}.", VERBOSITY_WARNING)
-                    if status == "dropped" or status == "did Not Finish" or status == "abandoned":
-                        status = "Dropped"
-                        log(f"[openlibrary.py.map_row] Status mapped to Dropped", VERBOSITY_TRACE)
-                    elif status == "paused" or status == "on hold":
-                        status = "Paused"
-                        log(f"[openlibrary.py.map_row] Status mapped to Paused", VERBOSITY_TRACE)
-                    else:
+                match status:
+                    case "already read":
+                        status = "Completed"
+                        log (f"[openlibrary.py.map_row] Status mapped to Completed", VERBOSITY_TRACE)
+                    case "currently reading":
                         status = "In progress"
-                        log(f"[openlibrary.py.map_row] Status mapped to In progress", VERBOSITY_TRACE)
-            
-            if row.get("My Ratings") is not None and row.get("My Ratings").isdigit():
-                log(f"[openlibrary.py.map_row] My Ratings: {row.get('My Ratings')}", VERBOSITY_TRACE)
-                score = int(row.get("My Ratings")) * 2
-            else:
-                log("[openlibrary.py.map_row] No My Ratings found, score will be None", VERBOSITY_TRACE)
-                score = None
-        case _:
-            log(f"[openlibrary.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
-            return "Unknown Souce"
+                        log (f"[openlibrary.py.map_row] Status mapped to In progress", VERBOSITY_TRACE)
+                    case "want to read":
+                        status = "Planning"
+                        log (f"[openlibrary.py.map_row] Status mapped to Planning", VERBOSITY_TRACE)
+                    case _:
+                        log(f"[openlibrary.py.map_row] Bookshelf status not a default bookshelf name: {status}.", VERBOSITY_WARNING)
+                        if status == "dropped" or status == "did Not Finish" or status == "abandoned":
+                            status = "Dropped"
+                            log(f"[openlibrary.py.map_row] Status mapped to Dropped", VERBOSITY_TRACE)
+                        elif status == "paused" or status == "on hold":
+                            status = "Paused"
+                            log(f"[openlibrary.py.map_row] Status mapped to Paused", VERBOSITY_TRACE)
+                        else:
+                            status = "In progress"
+                            log(f"[openlibrary.py.map_row] Status mapped to In progress", VERBOSITY_TRACE)
+                
+                if row.get("My Ratings") is not None and row.get("My Ratings").isdigit():
+                    log(f"[openlibrary.py.map_row] My Ratings: {row.get('My Ratings')}", VERBOSITY_TRACE)
+                    score = int(row.get("My Ratings")) * 2
+                else:
+                    log("[openlibrary.py.map_row] No My Ratings found, score will be None", VERBOSITY_TRACE)
+                    score = None
+            case _:
+                log(f"[openlibrary.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
+                return "Unknown Souce"
+    except Exception:
+        log(f"[openlibrary.py.map_row] Error mapping row with strategy '{strategy}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
 
-    # Build mapped row
-    mapped = {
-        "source": source,
-        "media_id": media_id,
-        "media_type": media_type,
-        "title": title,
-        "image": image,
-        "season_number": season_number,
-        "episode_number": episode_number,
-        "score": score,
-        "status": status,
-        "notes": notes,
-        "start_date": start_date,
-        "end_date": end_date,
-        "progress": progress,
-    }
+    try:
+        # Build mapped row
+        mapped = {
+            "source": source,
+            "media_id": media_id,
+            "media_type": media_type,
+            "title": title,
+            "image": image,
+            "season_number": season_number,
+            "episode_number": episode_number,
+            "score": score,
+            "status": status,
+            "notes": notes,
+            "start_date": start_date,
+            "end_date": end_date,
+            "progress": progress,
+        }
 
-    valid = validate_row(mapped)
-    if valid:
-        log(f"[openlibrary.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
-    return mapped
+        valid = validate_row(mapped)
+        if valid:
+            log(f"[openlibrary.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
+        return mapped
+    except Exception:
+        log(f"[openlibrary.py.map_row] Failed to build mapped row for row {idx}", VERBOSITY_ERROR)
+        return []
     
 
 def process_rows(rows,strategy=None):
@@ -123,13 +130,16 @@ def process_rows(rows,strategy=None):
     Process a list of dictionaries representing rows from the file.
     Returns a list of mapped rows.
     """
-    log("[openlibrary.py.process_rows] ==============================================", VERBOSITY_DEBUG)
-    log(f"[openlibrary.py.process_rows] Processing {len(rows)} rows from openlibrary", VERBOSITY_DEBUG)
-    log(f"[openlibrary.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
-    if rows:
-        total = len(rows)
-        mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
-        log(f"[openlibrary.py.process_rows] =========================", VERBOSITY_DEBUG)
-        log("[openlibrary.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
-        return mapped_rows
+    try:
+        log("[openlibrary.py.process_rows] ==============================================", VERBOSITY_DEBUG)
+        log(f"[openlibrary.py.process_rows] Processing {len(rows)} rows from openlibrary", VERBOSITY_DEBUG)
+        log(f"[openlibrary.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
+        if rows:
+            total = len(rows)
+            mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
+            log(f"[openlibrary.py.process_rows] =========================", VERBOSITY_DEBUG)
+            log("[openlibrary.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
+            return mapped_rows
+    except Exception:
+        log(f"[openlibrary.py.process_rows] Critical error processing rows", VERBOSITY_ERROR)
     return []

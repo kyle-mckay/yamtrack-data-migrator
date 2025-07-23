@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import traceback
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import datetime
@@ -8,7 +9,8 @@ from datetime import datetime
 ENV_PATH = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=ENV_PATH)
 
-VERBOSITY = int(os.getenv("VERBOSITY"))
+VERBOSITY = int(os.getenv("verbosity"))
+
 VERBOSITY_ERROR = 0
 VERBOSITY_WARNING = 1
 VERBOSITY_INFO = 2
@@ -18,6 +20,7 @@ VERBOSITY_TRACE = 4
 write_to_file = os.getenv("write_to_file", "False").lower() in ("true", "1", "yes")
 clear_logs_on_start = os.getenv("clear_logs_on_start", "False").lower() in ("true", "1", "yes")
 log_file_path = Path(__file__).parent / 'logs' / 'app.log'
+traceback_exit = os.getenv("traceback_exit", "False").lower() in ("true", "1", "yes")
 
 _COLOR_RESET   = "\033[0m"
 _COLOR_MAP = {
@@ -35,7 +38,7 @@ def _strip_ansi(text: str) -> str:
     return _ansi_escape_re.sub("", text)
 
 def _log_internal_warning(msg):
-    # Always print warning in yellow, ignoring VERBOSITY filtering and recursion
+    # Always print warning in yellow, ignoring verbosity filtering and recursion
     warning_label = "\033[38;5;208m[INTL] \033[0m"
     print(f"{warning_label}{msg}", file=sys.stdout)
     if write_to_file:
@@ -73,9 +76,14 @@ def log(msg, level=None):
     if write_to_file:
         plain_msg = _strip_ansi(formatted_msg)
         _log_to_file(plain_msg, level)
+    
 
     if level == VERBOSITY_ERROR:
-        raise Exception(msg)
+        traceback.print_exc()  # Prints to stderr
+
+        if traceback_exit:
+            log(f"[logging.py.log] Exiting due to traceback_exit",VERBOSITY_TRACE)
+            sys.exit()
 
 def _log_to_file(msg, level):
     if level > VERBOSITY:

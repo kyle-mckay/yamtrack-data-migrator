@@ -31,85 +31,100 @@ def map_row(row, idx=None, total=None):
     Map a single hardcover row dict to the target schema.
     Optionally logs the row index and total.
     """
-    log(f"[igdb.py.map_row] =========================", VERBOSITY_DEBUG)
+    log(f"[hardcover.py.map_row] =========================", VERBOSITY_DEBUG)
     if idx is not None and total is not None:
-        log(f"[igdb.py.map_row] Mapping row {idx}/{total}", VERBOSITY_DEBUG)
+        log(f"[hardcover.py.map_row] Mapping row {idx}/{total}", VERBOSITY_DEBUG)
+    column_name=None
 
-    # Map media_type
-    media_type = row.get("Media", "").lower()
-    log(f"[igdb.py.map_row] Mapping media_type from Media: {media_type}", VERBOSITY_TRACE)
-    if media_type in ("book", "audio", "ebook"):
-        mapped_media_type = "book"
-        log(f"[igdb.py.map_row] Mapped media_type to 'book'", VERBOSITY_TRACE)
-    elif media_type == "comic":
-        mapped_media_type = "comic"
-        log(f"[igdb.py.map_row] Mapped media_type to 'comic'", VERBOSITY_TRACE)
-    else:
-        mapped_media_type = media_type or None
-        log(f"[igdb.py.map_row] mapped_media_type to None or original value: {mapped_media_type}", VERBOSITY_WARNING)
-
-    # Map status
-    log(f"[igdb.py.map_row] Mapping status from Status: {row.get('Status', '')}", VERBOSITY_TRACE)
-    status_map = {
-        "Read": "Completed",
-        "Want to Read": "Planning",
-        "Currently Reading": "In progress"
-    }
-    mapped_status = status_map.get(row.get("Status", ""), row.get("Status", ""))
-    log(f"[igdb.py.map_row] Mapped status: {mapped_status}", VERBOSITY_TRACE)
-
-    # Map score
-    log(f"[igdb.py.map_row] Mapping score from Rating: {row.get('Rating', 0)}", VERBOSITY_TRACE)
     try:
-        score = float(row.get("Rating", 0)) * 2
+        # Map media_type
+        column_name="media_type"
+        media_type = row.get("Media", "").lower()
+        log(f"[hardcover.py.map_row] Mapping media_type from Media: {media_type}", VERBOSITY_TRACE)
+        if media_type in ("book", "audio", "ebook"):
+            mapped_media_type = "book"
+            log(f"[hardcover.py.map_row] Mapped media_type to 'book'", VERBOSITY_TRACE)
+        elif media_type == "comic":
+            mapped_media_type = "comic"
+            log(f"[hardcover.py.map_row] Mapped media_type to 'comic'", VERBOSITY_TRACE)
+        else:
+            mapped_media_type = media_type or None
+            log(f"[hardcover.py.map_row] mapped_media_type to None or original value: {mapped_media_type}", VERBOSITY_WARNING)
+
+        # Map status
+        column_name="status"
+        log(f"[hardcover.py.map_row] Mapping status from Status: {row.get('Status', '')}", VERBOSITY_TRACE)
+        status_map = {
+            "Read": "Completed",
+            "Want to Read": "Planning",
+            "Currently Reading": "In progress"
+        }
+        mapped_status = status_map.get(row.get("Status", ""), row.get("Status", ""))
+        log(f"[hardcover.py.map_row] Mapped status: {mapped_status}", VERBOSITY_TRACE)
+
+        # Map score
+        column_name="score"
+        log(f"[hardcover.py.map_row] Mapping score from Rating: {row.get('Rating', 0)}", VERBOSITY_TRACE)
+        try:
+            score = float(row.get("Rating", 0)) * 2
+        except Exception:
+            score = None
+        log(f"[hardcover.py.map_row] Mapped score: {score}", VERBOSITY_TRACE)
+
+        # Map dates 
+        column_name="start_date"
+        log(f"[hardcover.py.map_row] Mapping start_date from Date Started: {row.get('Date Started')}", VERBOSITY_TRACE)
+        start_date_raw = row.get("Date Started")
+        start_date = f"{start_date_raw} 00:00:00+00:00" if start_date_raw else None
+        log(f"[hardcover.py.map_row] Mapped start_date: {start_date}", VERBOSITY_TRACE)
+        column_name="end_date"
+        log(f"[hardcover.py.map_row] Mapping end_date from Date Finished: {row.get('Date Finished')}", VERBOSITY_TRACE)
+        end_date_raw = row.get("Date Finished")
+        end_date = f"{end_date_raw} 00:00:00+00:00" if end_date_raw else None
+        log(f"[hardcover.py.map_row] Mapped end_date: {end_date}", VERBOSITY_TRACE)
     except Exception:
-        score = None
-    log(f"[igdb.py.map_row] Mapped score: {score}", VERBOSITY_TRACE)
+        log(f"[hardcover.py.map_row] Error mapping column '{column_name}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
 
-    # Map dates 
-    log(f"[igdb.py.map_row] Mapping start_date from Date Started: {row.get('Date Started')}", VERBOSITY_TRACE)
-    start_date_raw = row.get("Date Started")
-    start_date = f"{start_date_raw} 00:00:00+00:00" if start_date_raw else None
-    log(f"[igdb.py.map_row] Mapped start_date: {start_date}", VERBOSITY_TRACE)
-
-    log(f"[igdb.py.map_row] Mapping end_date from Date Finished: {row.get('Date Finished')}", VERBOSITY_TRACE)
-    end_date_raw = row.get("Date Finished")
-    end_date = f"{end_date_raw} 00:00:00+00:00" if end_date_raw else None
-    log(f"[igdb.py.map_row] Mapped end_date: {end_date}", VERBOSITY_TRACE)
-
-    # Build mapped row
-    mapped = {
-        "source": "hardcover",
-        "media_id": row.get("Hardcover Book ID"),
-        "media_type": mapped_media_type,
-        "title": None,
-        "image": None,
-        "season_number": None,
-        "episode_number": None,
-        "score": score,
-        "status": mapped_status,
-        "notes": row.get("Private Notes"),
-        "start_date": start_date,
-        "end_date": end_date,
-        "progress": row.get("Pages"),
-    }
-    
-    valid = validate_row(mapped)
-    if valid:
-        log(f"[igdb.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
-    return mapped
+    try:
+        # Build mapped row
+        mapped = {
+            "source": "hardcover",
+            "media_id": row.get("Hardcover Book ID"),
+            "media_type": mapped_media_type,
+            "title": None,
+            "image": None,
+            "season_number": None,
+            "episode_number": None,
+            "score": score,
+            "status": mapped_status,
+            "notes": row.get("Private Notes"),
+            "start_date": start_date,
+            "end_date": end_date,
+            "progress": row.get("Pages"),
+        }
+        
+        valid = validate_row(mapped)
+        if valid:
+            log(f"[hardcover.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
+        return mapped
+    except Exception:
+        log(f"[hardcover.py.map_row] Failed to build mapped row for row {idx}", VERBOSITY_ERROR)
+        return []
 
 def process_rows(rows):
     """
     Process a list of dictionaries representing rows from the hardcover CSV.
     Returns a list of mapped rows.
     """
-    log(f"[igdb.py.process_rows] ==============================================", VERBOSITY_DEBUG)
-    log(f"[igdb.py.process_rows] Processing {len(rows)} rows from hardcover", VERBOSITY_DEBUG)
-    if rows:
-        total = len(rows)
-        mapped_rows = [map_row(row, idx+1, total) for idx, row in enumerate(rows)]
-        log(f"[igdb.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
-        log(f"[igdb.py.process_rows] =========================", VERBOSITY_DEBUG)
-        return mapped_rows
+    log(f"[hardcover.py.process_rows] ==============================================", VERBOSITY_DEBUG)
+    log(f"[hardcover.py.process_rows] Processing {len(rows)} rows from hardcover", VERBOSITY_DEBUG)
+    try:
+        if rows:
+            total = len(rows)
+            mapped_rows = [map_row(row, idx+1, total) for idx, row in enumerate(rows)]
+            log(f"[hardcover.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
+            log(f"[hardcover.py.process_rows] =========================", VERBOSITY_DEBUG)
+            return mapped_rows
+    except Exception:
+        log(f"[hardcover.py.process_rows] Critical error processing rows", VERBOSITY_ERROR)
     return []
