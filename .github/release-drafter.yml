@@ -36,4 +36,4 @@ template: |
 
   $CHANGES
 
-  **Full Changelog**: https://github.com/owner/repo/compare/$PREVIOUS_TAG...$NEXT_TAG
+  **Full Changelog**: https://github.com/kyle-mckay/yamtrack-data-migrator/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
