@@ -82,7 +82,7 @@ def log(msg, level=None):
         traceback.print_exc()  # Prints to stderr
 
         if traceback_exit:
-            log(f"[logging.py.log] Exiting due to traceback_exit",VERBOSITY_TRACE)
+            log(f"[logging.py.log] Exiting due to traceback_exit",VERBOSITY_WARNING)
             sys.exit()
 
 def _log_to_file(msg, level):
