@@ -6,8 +6,17 @@ Reference: https://github.com/FuzzyGrim/Yamtrack/wiki/Yamtrack-CSV-Format
 
 from datetime import datetime
 from typing import Any, Dict, Tuple
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 
 from clilog import log, VERBOSITY, VERBOSITY_WARNING, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE, VERBOSITY_ERROR
+
+# Variable defenitions
+ENV_PATH = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=ENV_PATH)
+
+skip_invalid_row = os.getenv("skip_invalid_row", "False").lower() in ("true", "1", "yes")
 
 # === YamTrack static rule sets =================================================
 

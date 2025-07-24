@@ -51,7 +51,7 @@ Full Column List as of 2025-07-10: id, game, url, rating, category, release_date
 """
 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
-from .validate import validate_row
+from .validate import validate_row, skip_invalid_row
 
 def map_row(row, strategy=None, idx=None, total=None):
     """
@@ -61,6 +61,7 @@ def map_row(row, strategy=None, idx=None, total=None):
     log(f"[igdb.py.map_row] =========================", VERBOSITY_DEBUG)
     if idx is not None and total is not None:
         log(f"[igdb.py.map_row] Mapping row {idx}/{total}", VERBOSITY_DEBUG)
+    log(f"[openlibrary.py.map_row] Row {idx}: {row}", VERBOSITY_TRACE)
 
     source="igdb"
     media_id=None
@@ -100,7 +101,7 @@ def map_row(row, strategy=None, idx=None, total=None):
                 title=row.get("game")
             case _:
                 log(f"[igdb.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
-                return "Unknown Souce"
+                return []
     except Exception:
         log(f"[igdb.py.map_row] Error mapping row with strategy '{strategy}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
 
@@ -125,6 +126,11 @@ def map_row(row, strategy=None, idx=None, total=None):
         valid = validate_row(mapped)
         if valid:
             log(f"[igdb.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
+        else:
+            log(f"[openlibrary.py.map_row] Row {idx}: {mapped}", VERBOSITY_WARNING)
+            if skip_invalid_row:
+                log(f"skip_invalid_row is true, will not export row {idx}", VERBOSITY_INFO)
+                return []
         return mapped
     except Exception:
         log(f"[igdb.py.map_row] Failed to build mapped row for row {idx}", VERBOSITY_ERROR)
@@ -142,7 +148,14 @@ def process_rows(rows,strategy=None):
         log(f"[igdb.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
         if rows:
             total = len(rows)
-            mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
+            mapped_rows = []
+            for idx, row in enumerate(rows):
+                mapped = map_row(row, strategy, idx + 1, total)
+                # Skip if mapped is None or empty list
+                if mapped is None or mapped == []:
+                    log(f"[igdb.py.process_rows] Detected empty row in {idx + 1}", VERBOSITY_DEBUG)
+                    continue
+                mapped_rows.append(mapped)
             log(f"[igdb.py.process_rows] =========================", VERBOSITY_DEBUG)
             log("[igdb.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
             return mapped_rows
