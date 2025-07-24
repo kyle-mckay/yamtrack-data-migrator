@@ -172,8 +172,10 @@ def main():
         log(f"[cli.py.main] Unable to detect file type for {input_path}", VERBOSITY_ERROR)
 
     try:
-        # Detect file name based on source and suggest strategy
+        # Detect file name based on source and enforce different strategy
+        
         if strategy is None:
+            strategy = "default" # Default to default
             if filetype == 'csv':
                 if args.source == 'igdb':
                     if file_name.endswith('played.csv'):
@@ -186,12 +188,11 @@ def main():
                         log("[cli.py.main] Detected IGDB want-to-play list CSV", VERBOSITY_DEBUG)
                         strategy = 'list-want'
                 if args.source == 'openlibrary':
-                    if file_name.endswith('openlibrary_readinglog.csv'):
-                        log("[cli.py.main] Detected OpenLibrary reading log CSV", VERBOSITY_DEBUG)
-                        strategy = 'openlibrary-reading-log'
-            else:
-                # default strategy to the source value
-                strategy = args.source
+                    log("[cli.py.main] Placeholder logic for openlibrary exports.", VERBOSITY_TRACE)
+                    #if file_name.endswith('openlibrary_readinglog.csv'):
+                        #log("[cli.py.main] Detected OpenLibrary reading log CSV", VERBOSITY_DEBUG)
+                        #strategy = 'openlibrary-reading-log'
+
         log(f"[cli.py.main] Strategy: {strategy}", VERBOSITY_DEBUG)
     except Exception:
         log("[cli.py.main] Unable to set strategy", VERBOSITY_ERROR)
@@ -201,7 +202,7 @@ def main():
         if filetype == 'csv':
             rows = import_csv(input_file)
             if args.source == 'hardcover':
-                mapped_rows = hardcover.process_rows(rows)
+                mapped_rows = hardcover.process_rows(rows, strategy)
             elif args.source == 'igdb':
                 mapped_rows = igdb.process_rows(rows, strategy)
             elif args.source == 'openlibrary':

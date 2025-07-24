@@ -29,9 +29,9 @@ Full Column List as of 2025-07-13: Work ID, Title, Authors, First Publish Year, 
 """
 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
-from .validate import validate_row
+from .validate import validate_row, skip_invalid_row
 
-def map_row(row, strategy=None, idx=None, total=None):
+def map_row(row, strategy="default", idx=None, total=None):
     """
     Map a single openlibrary row dict to the target schema.
     Optionally logs the row index and total.
@@ -39,6 +39,7 @@ def map_row(row, strategy=None, idx=None, total=None):
     log(f"[openlibrary.py.map_row] =========================", VERBOSITY_DEBUG)
     if idx is not None and total is not None:
         log(f"[openlibrary.py.map_row] Mapping row {idx}/{total}", VERBOSITY_DEBUG)
+    log(f"[openlibrary.py.map_row] Row {idx}: {row}", VERBOSITY_TRACE)
 
     source="openlibrary"
     media_id=None
@@ -56,7 +57,8 @@ def map_row(row, strategy=None, idx=None, total=None):
 
     try:
         match strategy:
-            case "openlibrary-reading-log":
+            case "default":
+            #case "openlibrary-reading-log":
                 # Stretegy set if `--strategy` is none and input file was `OpenLibrary_ReadingLog.csv`
                 media_id=row.get("Edition ID")
                 log(f"[openlibrary.py.map_row] Media ID: {media_id}", VERBOSITY_TRACE)
@@ -93,8 +95,8 @@ def map_row(row, strategy=None, idx=None, total=None):
                     log("[openlibrary.py.map_row] No My Ratings found, score will be None", VERBOSITY_TRACE)
                     score = None
             case _:
-                log(f"[openlibrary.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
-                return "Unknown Souce"
+                log(f"[openlibrary.py.map_row] Unknown or unsupported strategy = {strategy}",VERBOSITY_ERROR)
+                return []
     except Exception:
         log(f"[openlibrary.py.map_row] Error mapping row with strategy '{strategy}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
 
@@ -119,13 +121,18 @@ def map_row(row, strategy=None, idx=None, total=None):
         valid = validate_row(mapped)
         if valid:
             log(f"[openlibrary.py.map_row] Mapped row: {mapped}", VERBOSITY_DEBUG)
+        else:
+            log(f"[openlibrary.py.map_row] Row {idx}: {mapped}", VERBOSITY_WARNING)
+            if skip_invalid_row:
+                log(f"skip_invalid_row is true, will not export row {idx}", VERBOSITY_INFO)
+                return []
         return mapped
     except Exception:
         log(f"[openlibrary.py.map_row] Failed to build mapped row for row {idx}", VERBOSITY_ERROR)
         return []
     
 
-def process_rows(rows,strategy=None):
+def process_rows(rows,strategy="default"):
     """
     Process a list of dictionaries representing rows from the file.
     Returns a list of mapped rows.
@@ -136,7 +143,14 @@ def process_rows(rows,strategy=None):
         log(f"[openlibrary.py.process_rows] Strategy being used = {strategy}", VERBOSITY_DEBUG)
         if rows:
             total = len(rows)
-            mapped_rows = [map_row(row, strategy, idx+1, total) for idx, row in enumerate(rows)]
+            mapped_rows = []
+            for idx, row in enumerate(rows):
+                mapped = map_row(row, strategy, idx + 1, total)
+                # Skip if mapped is None or empty list
+                if mapped is None or mapped == []:
+                    log(f"[openlibrary.py.process_rows] Detected empty row in {idx + 1}", VERBOSITY_DEBUG)
+                    continue
+                mapped_rows.append(mapped)
             log(f"[openlibrary.py.process_rows] =========================", VERBOSITY_DEBUG)
             log("[openlibrary.py.process_rows] Mapped all rows", VERBOSITY_DEBUG)
             return mapped_rows
