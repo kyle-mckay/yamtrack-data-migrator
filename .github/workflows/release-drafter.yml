@@ -6,6 +6,14 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - '.github/**'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'main'
 
   # pull_request event is required only for autolabeler
   pull_request:
