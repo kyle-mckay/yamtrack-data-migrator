@@ -53,7 +53,7 @@ Full Column List as of 2025-07-10: id, game, url, rating, category, release_date
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
 from .validate import validate_row, skip_invalid_row
 
-def map_row(row, strategy=None, idx=None, total=None):
+def map_row(row, strategy="default", idx=None, total=None):
     """
     Map a single igdb row dict to the target schema.
     Optionally logs the row index and total.
@@ -95,12 +95,12 @@ def map_row(row, strategy=None, idx=None, total=None):
                 # Strategy set if `--strategy` is none and input file was `want-to-play.csv`
                 media_id=row.get("id")
                 status="Planning"
-            case "igdb":
+            case "default":
                 # Default if `--source` is `igdb`
                 media_id=row.get("id")
                 title=row.get("game")
             case _:
-                log(f"[igdb.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
+                log(f"[igdb.py.map_row] Unknown or unsupported strategy = {strategy}",VERBOSITY_ERROR)
                 return []
     except Exception:
         log(f"[igdb.py.map_row] Error mapping row with strategy '{strategy}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
@@ -137,7 +137,7 @@ def map_row(row, strategy=None, idx=None, total=None):
         return []
     
 
-def process_rows(rows,strategy=None):
+def process_rows(rows,strategy="default"):
     """
     Process a list of dictionaries representing rows from the file.
     Returns a list of mapped rows.

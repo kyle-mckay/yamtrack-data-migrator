@@ -112,7 +112,7 @@ def map_row(row, strategy="default", idx=None, total=None):
                 notes = row.get("Private Notes")
                 
             case _:
-                log(f"[hardcover.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
+                log(f"[hardcover.py.map_row] Unknown or unsupported strategy = {strategy}",VERBOSITY_ERROR)
                 log(f"[hardcover.py.map_row] Mapping media_type from Media: {media_type}", VERBOSITY_TRACE)
                 return []
 

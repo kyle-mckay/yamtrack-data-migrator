@@ -31,7 +31,7 @@ Full Column List as of 2025-07-13: Work ID, Title, Authors, First Publish Year, 
 from clilog import log, VERBOSITY, VERBOSITY_ERROR, VERBOSITY_WARNING, VERBOSITY_INFO, VERBOSITY_DEBUG, VERBOSITY_TRACE
 from .validate import validate_row, skip_invalid_row
 
-def map_row(row, strategy=None, idx=None, total=None):
+def map_row(row, strategy="default", idx=None, total=None):
     """
     Map a single openlibrary row dict to the target schema.
     Optionally logs the row index and total.
@@ -57,7 +57,8 @@ def map_row(row, strategy=None, idx=None, total=None):
 
     try:
         match strategy:
-            case "openlibrary-reading-log":
+            case "default":
+            #case "openlibrary-reading-log":
                 # Stretegy set if `--strategy` is none and input file was `OpenLibrary_ReadingLog.csv`
                 media_id=row.get("Edition ID")
                 log(f"[openlibrary.py.map_row] Media ID: {media_id}", VERBOSITY_TRACE)
@@ -94,7 +95,7 @@ def map_row(row, strategy=None, idx=None, total=None):
                     log("[openlibrary.py.map_row] No My Ratings found, score will be None", VERBOSITY_TRACE)
                     score = None
             case _:
-                log(f"[openlibrary.py.map_row] Unknown strategy = {strategy}",VERBOSITY_ERROR)
+                log(f"[openlibrary.py.map_row] Unknown or unsupported strategy = {strategy}",VERBOSITY_ERROR)
                 return []
     except Exception:
         log(f"[openlibrary.py.map_row] Error mapping row with strategy '{strategy}' in row {idx}. Writing as is.", VERBOSITY_ERROR)
@@ -131,7 +132,7 @@ def map_row(row, strategy=None, idx=None, total=None):
         return []
     
 
-def process_rows(rows,strategy=None):
+def process_rows(rows,strategy="default"):
     """
     Process a list of dictionaries representing rows from the file.
     Returns a list of mapped rows.
