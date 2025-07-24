@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - 'wiki/**'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'main'
 
 jobs:
   push-wiki:
