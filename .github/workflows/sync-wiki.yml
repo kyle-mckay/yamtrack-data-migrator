@@ -32,8 +32,9 @@ jobs:
       - name: Clone wiki repo
         run: |
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki_repo
-          rsync -av --delete ./wiki/ ./wiki_repo/
+          rsync -av --delete --exclude='.git' ./wiki/ ./wiki_repo/
           cd wiki_repo
           git add .
           git diff --cached --quiet || git commit -m "Automated sync from ./wiki folder"
           git push
+
