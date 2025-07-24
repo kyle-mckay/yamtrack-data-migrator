@@ -31,6 +31,7 @@ jobs:
 
       - name: Clone wiki repo
         run: |
+          rm -rf wiki_repo
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki_repo
           rsync -av --delete --exclude='.git' ./wiki/ ./wiki_repo/
           cd wiki_repo
